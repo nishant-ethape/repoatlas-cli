@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "repoatlas-cli"
+version = "0.2.0"
+description = "Ask natural-language questions about any code repository — powered by local LLMs and ChromaDB. Zero server setup."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+
+keywords = ["rag", "llm", "code-search", "ollama", "chromadb", "cli"]
+
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# Core deps — always required. No database server.
+dependencies = [
+    "typer>=0.12",
+    "rich>=13",
+    "httpx>=0.27",
+    "chromadb>=0.6",
+    "pyyaml>=6",
+]
+
+[project.optional-dependencies]
+openai     = ["openai>=1.30"]
+anthropic  = ["anthropic>=0.28"]
+groq       = ["groq>=0.9"]
+all        = ["openai>=1.30", "anthropic>=0.28", "groq>=0.9"]
+dev        = [
+    "pytest>=8",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+]
+
+[project.scripts]
+repolens = "cli.main:main"
+repoatlas = "cli.main:main"
+
+[project.urls]
+Repository = "https://github.com/yourusername/repolens"
+
+# --------------------------------------------------------------------------- #
+# Tool configuration
+# --------------------------------------------------------------------------- #
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["api*", "app*", "cli*", "db*", "indexer*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "BLE", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
