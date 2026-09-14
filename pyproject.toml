@@ -48,7 +48,7 @@ repolens = "cli.main:main"
 repoatlas = "cli.main:main"
 
 [project.urls]
-Repository = "https://github.com/yourusername/repolens"
+Repository = "https://github.com/nishant-ethape/repoatlas-cli"
 
 # --------------------------------------------------------------------------- #
 # Tool configuration
