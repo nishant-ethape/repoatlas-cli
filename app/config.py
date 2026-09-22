@@ -21,20 +21,30 @@ _CONFIG_DIR  = Path.home() / ".repoatlas"
 _CONFIG_FILE = _CONFIG_DIR / "config.yaml"
 
 _DEFAULTS: dict[str, Any] = {
-    "chroma_path":    str(_CONFIG_DIR / "chroma_db"),
-    "provider":       "ollama",
-    "chat_model":     "qwen2.5-coder:3b",
-    "embed_model":    "nomic-embed-text",
-    "ollama_base_url": "http://localhost:11434",
+    "chroma_path":        str(_CONFIG_DIR / "chroma_db"),
+    "provider":           "ollama",
+    "chat_model":         "qwen2.5-coder:3b",
+    "embed_provider":     "ollama",
+    "embed_model":        "nomic-embed-text",
+    "ollama_base_url":    "http://localhost:11434",
+    "api_key":            None,
+    "openai_api_key":     None,
+    "anthropic_api_key":  None,
+    "groq_api_key":       None,
 }
 
 # Env-var → config key mapping
 _ENV_MAP = {
-    "REPOATLAS_CHROMA_PATH":  "chroma_path",
-    "REPOATLAS_PROVIDER":     "provider",
-    "REPOATLAS_MODEL":        "chat_model",
-    "REPOATLAS_EMBED_MODEL":  "embed_model",
-    "OLLAMA_BASE_URL":        "ollama_base_url",
+    "REPOATLAS_CHROMA_PATH":      "chroma_path",
+    "REPOATLAS_PROVIDER":         "provider",
+    "REPOATLAS_MODEL":            "chat_model",
+    "REPOATLAS_EMBED_PROVIDER":   "embed_provider",
+    "REPOATLAS_EMBED_MODEL":      "embed_model",
+    "REPOATLAS_API_KEY":          "api_key",
+    "OLLAMA_BASE_URL":            "ollama_base_url",
+    "OPENAI_API_KEY":             "openai_api_key",
+    "ANTHROPIC_API_KEY":          "anthropic_api_key",
+    "GROQ_API_KEY":               "groq_api_key",
 }
 
 

@@ -60,16 +60,40 @@ def chunk_python_file(file_path: str) -> list[CodeChunk]:
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
             start = node.lineno
             end = node.end_lineno  # type: ignore[attr-defined]
-            code_text = "\n".join(source_lines[start - 1 : end])
+            lines = source_lines[start - 1 : end]
             chunk_type = "class" if isinstance(node, ast.ClassDef) else "function"
-            chunks.append(CodeChunk(
-                file_path=file_path,
-                chunk_type=chunk_type,
-                name=node.name,
-                start_line=start,
-                end_line=end,
-                code=code_text,
-            ))
+
+            # If node is small to medium (<= 60 lines), emit as single chunk
+            if len(lines) <= 60:
+                code_text = "\n".join(lines)
+                chunks.append(CodeChunk(
+                    file_path=file_path,
+                    chunk_type=chunk_type,
+                    name=node.name,
+                    start_line=start,
+                    end_line=end,
+                    code=code_text,
+                ))
+            else:
+                # Large function/class: split into sub-windows with 10-line overlap
+                step = 50
+                overlap = 10
+                for i in range(0, len(lines), step - overlap):
+                    sub_lines = lines[i : i + step]
+                    sub_start = start + i
+                    sub_end = min(start + i + len(sub_lines) - 1, end)
+                    sub_code = "\n".join(sub_lines)
+                    part_num = (i // (step - overlap)) + 1
+                    chunks.append(CodeChunk(
+                        file_path=file_path,
+                        chunk_type=chunk_type,
+                        name=f"{node.name}_p{part_num}",
+                        start_line=sub_start,
+                        end_line=sub_end,
+                        code=sub_code,
+                    ))
+                    if i + step >= len(lines):
+                        break
 
     # If the file has no top-level symbols (e.g. a pure script with no defs),
     # treat it as a text file so we don't silently skip it.

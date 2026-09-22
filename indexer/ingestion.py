@@ -68,6 +68,8 @@ def index_repo(
     collection: chromadb.Collection,
     reset: bool = False,
     embed_model: Optional[str] = None,
+    embed_provider: Optional[str] = None,
+    api_key: Optional[str] = None,
     verbose: bool = True,
 ) -> dict:
     """
@@ -75,13 +77,15 @@ def index_repo(
 
     Parameters
     ----------
-    repo_path  : str — absolute path to the repository root to index
-    collection : chromadb.Collection — target collection (already open)
-    reset      : bool — True means the collection was already wiped by the
-                 caller (via reset_collection); False means we clear only
-                 this repo's existing chunks before re-indexing
-    embed_model: str, optional — override the Ollama embedding model
-    verbose    : bool — print per-file progress lines
+    repo_path      : str — absolute path to the repository root to index
+    collection     : chromadb.Collection — target collection (already open)
+    reset          : bool — True means the collection was already wiped by the
+                     caller (via reset_collection); False means we clear only
+                     this repo's existing chunks before re-indexing
+    embed_model    : str, optional — override the embedding model
+    embed_provider : str, optional — override embedding provider ("ollama", "openai", "local")
+    api_key        : str, optional — API key for cloud embedding provider
+    verbose        : bool — print per-file progress lines
 
     Returns
     -------
@@ -100,7 +104,13 @@ def index_repo(
     files_skipped  = 0
     errors: list[str] = []
 
-    kwargs = {"model": embed_model} if embed_model else {}
+    kwargs: dict = {}
+    if embed_model:
+        kwargs["model"] = embed_model
+    if embed_provider:
+        kwargs["provider"] = embed_provider
+    if api_key:
+        kwargs["api_key"] = api_key
 
     for dirpath, dirnames, filenames in os.walk(repo_path):
         dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]

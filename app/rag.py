@@ -71,18 +71,22 @@ def ask(
     repo_path: Optional[str] = None,
     top_k: int = 5,
     embed_model: Optional[str] = None,
+    embed_provider: Optional[str] = None,
+    embed_api_key: Optional[str] = None,
 ) -> dict:
     """
     Answer *question* using RAG over the indexed code.
 
     Parameters
     ----------
-    question   : str — the user's natural-language question
-    collection : chromadb.Collection — the open RepoAtlas collection
-    provider   : LLMProvider — active chat LLM backend
-    repo_path  : str, optional — restrict retrieval to a specific repo
-    top_k      : int — number of chunks to retrieve (default 5)
-    embed_model: str, optional — override embedding model
+    question       : str — the user's natural-language question
+    collection     : chromadb.Collection — the open RepoAtlas collection
+    provider       : LLMProvider — active chat LLM backend
+    repo_path      : str, optional — restrict retrieval to a specific repo
+    top_k          : int — number of chunks to retrieve (default 5)
+    embed_model    : str, optional — override embedding model
+    embed_provider : str, optional — override embedding provider ("ollama", "openai", "local")
+    embed_api_key  : str, optional — API key for cloud embedding provider
 
     Returns
     -------
@@ -96,6 +100,8 @@ def ask(
         repo_path=repo_path,
         top_k=top_k,
         embed_model=embed_model,
+        embed_provider=embed_provider,
+        api_key=embed_api_key,
     )
 
     if not chunks:

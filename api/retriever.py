@@ -19,17 +19,21 @@ def retrieve(
     repo_path: Optional[str] = None,
     top_k: int = 5,
     embed_model: Optional[str] = None,
+    embed_provider: Optional[str] = None,
+    api_key: Optional[str] = None,
 ) -> list[dict]:
     """
     Embed *question* and return the *top_k* most similar chunks.
 
     Parameters
     ----------
-    question   : str — natural-language question from the user
-    collection : chromadb.Collection — the RepoAtlas chunks collection
-    repo_path  : str, optional — restrict results to a specific indexed repo
-    top_k      : int — number of chunks to return (default 5)
-    embed_model: str, optional — override the Ollama embedding model
+    question       : str — natural-language question from the user
+    collection     : chromadb.Collection — the RepoAtlas chunks collection
+    repo_path      : str, optional — restrict results to a specific indexed repo
+    top_k          : int — number of chunks to return (default 5)
+    embed_model    : str, optional — override the embedding model
+    embed_provider : str, optional — override embedding provider ("ollama", "openai", "local")
+    api_key        : str, optional — API key for cloud embedding provider
 
     Returns
     -------
@@ -37,7 +41,14 @@ def retrieve(
         repo_path, file_path, chunk_type, name,
         start_line, end_line, code, similarity
     """
-    kwargs = {"model": embed_model} if embed_model else {}
+    kwargs: dict = {}
+    if embed_model:
+        kwargs["model"] = embed_model
+    if embed_provider:
+        kwargs["provider"] = embed_provider
+    if api_key:
+        kwargs["api_key"] = api_key
+
     q_embedding = get_embedding(question, **kwargs)
 
     query_kwargs: dict = {
