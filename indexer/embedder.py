@@ -8,10 +8,7 @@ Backends:
 """
 from __future__ import annotations
 
-import hashlib
-import math
 import os
-import re
 from typing import Optional
 
 import httpx
@@ -50,13 +47,14 @@ def _get_fastembed(model_name: str = "BAAI/bge-small-en-v1.5"):
 
 
 def _embed_fastembed(text: str, model_name: str = "BAAI/bge-small-en-v1.5") -> list[float]:
+    # No silent fallback to another vector type: mixing vector spaces in one
+    # index would quietly ruin search quality. Fail loudly instead.
+    model = _get_fastembed(model_name)
     try:
-        model = _get_fastembed(model_name)
         embeddings = list(model.embed([text]))
-        return [float(x) for x in embeddings[0]]
-    except Exception:
-        # Fallback to in-memory hashing if ONNX/FastEmbed fails
-        return _embed_hash(text)
+    except Exception as e:
+        raise RuntimeError(f"FastEmbed failed to embed text: {e}") from e
+    return [float(x) for x in embeddings[0]]
 
 
 def _embed_ollama(text: str, model: str, base_url: str) -> list[float]:
@@ -114,31 +112,6 @@ def _embed_openai(text: str, model: str, api_key: str) -> list[float]:
 
     data = response.json()
     return data["data"][0]["embedding"]
-
-
-def _embed_hash(text: str, dim: int = 384) -> list[float]:
-    """Deterministic in-memory vectorizer (384 dimensions) used as instant fallback."""
-    tokens = re.findall(r"\w+|[^\w\s]", text.lower())
-    vec = [0.0] * dim
-    if not tokens:
-        return vec
-
-    for i, t in enumerate(tokens):
-        h = int(hashlib.md5(t.encode("utf-8")).hexdigest(), 16)
-        idx = h % dim
-        sign = 1.0 if (h >> 16) % 2 == 0 else -1.0
-        vec[idx] += sign * 1.0
-        if i > 0:
-            bg = f"{tokens[i-1]}_{t}"
-            h2 = int(hashlib.sha256(bg.encode("utf-8")).hexdigest(), 16)
-            idx2 = h2 % dim
-            sign2 = 1.0 if (h2 >> 16) % 2 == 0 else -1.0
-            vec[idx2] += sign2 * 1.5
-
-    norm = math.sqrt(sum(x * x for x in vec))
-    if norm > 0:
-        vec = [x / norm for x in vec]
-    return vec
 
 
 def get_embedding(

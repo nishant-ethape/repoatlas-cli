@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "repoatlas-cli"
-version = "0.3.0"
-description = "Ask natural-language questions about any code repository — powered by local LLMs and ChromaDB. Zero server setup."
+version = "0.4.0"
+description = "Ask natural-language questions about any code repository — local (Ollama) or cloud LLMs, ChromaDB, repo structure map. Zero server setup."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"

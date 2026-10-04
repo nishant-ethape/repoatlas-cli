@@ -14,7 +14,7 @@ Usage (programmatic):
 import hashlib
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 import chromadb
 
@@ -22,6 +22,12 @@ from db.chroma import clear_repo
 from indexer.chunker import chunk_file
 
 from indexer.embedder import get_embedding
+from indexer.repomap import (
+    REPO_MAP_CHUNK_TYPE,
+    REPO_MAP_FILE_PATH,
+    build_repo_map,
+    split_into_chunks,
+)
 
 # --------------------------------------------------------------------------- #
 # Skip lists  (unchanged from pgvector version)
@@ -35,6 +41,10 @@ _SKIP_DIRS = {
     "dist", "build", ".eggs",
     ".idea", ".vscode",
     ".repoatlas",           # don't index our own ChromaDB data
+    # Generated / vendored output that only adds noise and indexing time
+    ".dart_tool", "Pods", ".gradle", "DerivedData",   # Flutter / Android / iOS
+    ".next", ".nuxt", ".turbo", ".cache", "coverage",  # JS tooling
+    ".tox", ".terraform", "target",                    # Python / Terraform / Rust+Java
 }
 
 _SKIP_EXTENSIONS = {
@@ -44,7 +54,12 @@ _SKIP_EXTENSIONS = {
     ".mp3", ".mp4", ".wav", ".avi", ".mov",
     ".pdf", ".docx", ".xlsx", ".pptx", ".ttf", ".woff", ".woff2",
     ".lock",
+    ".class", ".jar", ".apk", ".aab", ".ipa", ".map",
+    ".db", ".sqlite", ".sqlite3", ".bin", ".onnx", ".pb", ".jks", ".keystore",
 }
+
+# Huge machine-written files that are never useful to search
+_SKIP_FILES = {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "poetry.lock"}
 
 _MAX_FILE_BYTES = 500_000  # 500 KB
 
@@ -71,6 +86,7 @@ def index_repo(
     embed_provider: Optional[str] = None,
     api_key: Optional[str] = None,
     verbose: bool = True,
+    on_progress: Optional[Callable[[int, int, str], None]] = None,
 ) -> dict:
     """
     Walk *repo_path*, chunk and embed every eligible file, store in ChromaDB.
@@ -86,6 +102,8 @@ def index_repo(
     embed_provider : str, optional — override embedding provider ("ollama", "openai", "local")
     api_key        : str, optional — API key for cloud embedding provider
     verbose        : bool — print per-file progress lines
+    on_progress    : callable, optional — called as (files_done, chunks_stored, rel_path)
+                     after every file; lets a UI show live progress
 
     Returns
     -------
@@ -119,7 +137,7 @@ def index_repo(
             file_path = os.path.join(dirpath, filename)
             _, ext = os.path.splitext(filename)
 
-            if ext.lower() in _SKIP_EXTENSIONS:
+            if ext.lower() in _SKIP_EXTENSIONS or filename in _SKIP_FILES or filename.endswith(".min.js"):
                 files_skipped += 1
                 continue
             try:
@@ -187,6 +205,30 @@ def index_repo(
                 status = "✓" if not file_had_error else "✗"
                 n = len(ids) if not file_had_error else 0
                 print(f"  {status} {rel_path}  ({n} chunks)")
+
+            if on_progress:
+                on_progress(files_indexed, chunks_stored, rel_path)
+
+    # ---- repo map: directory tree for structural questions ---- #
+    try:
+        tree_lines = build_repo_map(repo_path, _SKIP_DIRS, _SKIP_EXTENSIONS)
+        for start, end, text in split_into_chunks(tree_lines):
+            name = f"directory_tree_{start}"
+            collection.add(
+                ids=[_chunk_id(repo_path, REPO_MAP_FILE_PATH, name, start)],
+                embeddings=[get_embedding(text, **kwargs)],
+                documents=[text],
+                metadatas=[{
+                    "repo_path":  repo_path,
+                    "file_path":  REPO_MAP_FILE_PATH,
+                    "chunk_type": REPO_MAP_CHUNK_TYPE,
+                    "name":       name,
+                    "start_line": start,
+                    "end_line":   end,
+                }],
+            )
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"repo map: {exc}")
 
     return {
         "files_indexed": files_indexed,

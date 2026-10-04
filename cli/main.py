@@ -31,6 +31,7 @@ import typer
 from rich import box
 from rich.console import Console
 from rich.markdown import Markdown
+from rich.markup import escape
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
@@ -314,7 +315,13 @@ def index(
     else:
         collection = get_collection(client)
 
-    with console.status("[bold green]Indexing...[/bold green]", spinner="dots"):
+    with console.status("[bold green]Indexing...[/bold green]", spinner="dots") as status:
+        def _progress(files_done: int, chunks: int, rel_path: str) -> None:
+            short = escape(rel_path if len(rel_path) <= 60 else "..." + rel_path[-57:])
+            status.update(
+                f"[bold green]Indexing...[/bold green] {files_done} files, {chunks} chunks  [dim]{short}[/dim]"
+            )
+
         try:
             summary = index_repo(
                 repo_path=str(resolved),
@@ -324,6 +331,7 @@ def index(
                 embed_provider=effective_embed_provider,
                 api_key=api_key,
                 verbose=False,
+                on_progress=_progress,
             )
         except Exception as e:
             err_console.print(f"[red]Indexing failed:[/red] {e}")
